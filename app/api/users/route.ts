@@ -1,14 +1,30 @@
 import { NextResponse } from 'next/server';
-import { getUsers } from '@/lib/server-store';
+import { getUsers, saveUsers, User } from '@/lib/server-store';
 
-// 모든 사용자 목록 조회 (비밀번호 제외)
-export async function GET() {
+export async function POST(request: Request) {
   try {
-    const users = await getUsers();
-    // 비밀번호 제거
-    const safeUsers = users.map(({ password, ...user }) => user);
-    return NextResponse.json({ users: safeUsers });
+    const { username, password } = await request.json();
+
+    const users = getUsers();
+    
+    // 중복 확인
+    if (users.some(u => u.username === username)) {
+      return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+    }
+
+    const newUser: User = {
+      id: Date.now().toString(),
+      username,
+      password,
+      joinDate: new Date().toISOString(),
+    };
+
+    users.push(newUser);
+    saveUsers(users);
+
+    return NextResponse.json({ user: newUser });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    console.error('Register error:', error);
+    return NextResponse.json({ error: 'Failed to register' }, { status: 500 });
   }
 }
