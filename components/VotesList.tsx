@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Vote, store } from '@/lib/store';
+import { Vote, User, store } from '@/lib/store';
 import VoteCard from './VoteCard';
 
 interface VotesListProps {
@@ -14,17 +14,27 @@ type FilterOption = 'not-participated' | 'participated' | 'active' | 'expired' |
 
 export default function VotesList({ userId, onVoteClick }: VotesListProps) {
   const [votes, setVotes] = useState<Vote[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [filters, setFilters] = useState<FilterOption[]>(['all']);
 
   useEffect(() => {
-    loadVotes();
+    loadData();
   }, []);
 
-  const loadVotes = () => {
-    const allVotes = store.getVotes();
+  const loadData = async () => {
+    const allVotes = await store.getVotes();
     setVotes(allVotes);
+    
+    // 모든 사용자 정보 가져오기 (생성자 이름 표시용)
+    const allUsers = await store.getAllUsers();
+    setUsers(allUsers);
+  };
+
+  const getUserName = (userId: string): string => {
+    const user = users.find(u => u.id === userId);
+    return user ? user.username : '알 수 없음';
   };
 
   const toggleFilter = (filter: FilterOption) => {
@@ -162,6 +172,7 @@ export default function VotesList({ userId, onVoteClick }: VotesListProps) {
               vote={vote}
               hasVoted={hasVoted}
               isExpired={isExpired}
+              creatorName={getUserName(vote.creatorId)}
               onClick={() => onVoteClick(vote)}
             />
           );
